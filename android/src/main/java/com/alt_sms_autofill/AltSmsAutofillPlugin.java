@@ -44,16 +44,19 @@ public class AltSmsAutofillPlugin implements FlutterPlugin, MethodCallHandler, A
   public void onMethodCall(@NonNull MethodCall call, @NonNull final Result result) {
     this.result = result;
     if (call.method.equals("listenForSms")) {
-      checkPermission(activity);
-      if (!permissionGranted) {
-        ActivityCompat.requestPermissions(activity,
-                new String[]{Manifest.permission.RECEIVE_SMS},
-                myPermissionCode);
-      } else {
-        broadcastReceiver = new MySMSBroadcastReceive(new WeakReference<>(AltSmsAutofillPlugin.this));
-        broadcastReceiver.bindListener(smsListener);
-        activity.registerReceiver(broadcastReceiver,new IntentFilter(Telephony.Sms.Intents.SMS_RECEIVED_ACTION));
+      try {
+        checkPermission(activity);
+        if (!permissionGranted) {
+          ActivityCompat.requestPermissions(activity,
+                  new String[]{Manifest.permission.RECEIVE_SMS},
+                  myPermissionCode);
+        } else {
+          broadcastReceiver = new MySMSBroadcastReceive(new WeakReference<>(AltSmsAutofillPlugin.this));
+          broadcastReceiver.bindListener(smsListener);
+          activity.registerReceiver(broadcastReceiver,new IntentFilter(Telephony.Sms.Intents.SMS_RECEIVED_ACTION));
 
+        }
+      } catch (Exception ex) {
       }
     } else  if(call.method.equals("unregisterListener")){
       try {
@@ -74,9 +77,13 @@ public class AltSmsAutofillPlugin implements FlutterPlugin, MethodCallHandler, A
   };
 
   private void checkPermission(Activity context) {
-    permissionGranted = ContextCompat.checkSelfPermission(context,
-            Manifest.permission.RECEIVE_SMS) ==
-            PackageManager.PERMISSION_GRANTED;
+    try {
+      permissionGranted = ContextCompat.checkSelfPermission(context,
+              Manifest.permission.RECEIVE_SMS) ==
+              PackageManager.PERMISSION_GRANTED;
+    } catch (Exception ex) {
+      //
+    }
   }
   @Override
   public void onDetachedFromEngine(@NonNull FlutterPluginBinding binding) {
@@ -85,9 +92,12 @@ public class AltSmsAutofillPlugin implements FlutterPlugin, MethodCallHandler, A
 
   @Override
   public void onAttachedToActivity(@NonNull ActivityPluginBinding binding) {
-    activity = binding.getActivity();
-    binding.addRequestPermissionsResultListener(this);
-
+    try {
+      activity = binding.getActivity();
+      binding.addRequestPermissionsResultListener(this);
+    } catch (Exception ex) {
+      //
+    }
   }
 
   @Override
@@ -97,8 +107,13 @@ public class AltSmsAutofillPlugin implements FlutterPlugin, MethodCallHandler, A
 
   @Override
   public void onReattachedToActivityForConfigChanges(@NonNull ActivityPluginBinding binding) {
-    activity = binding.getActivity();
-    binding.addRequestPermissionsResultListener(this);
+    try {
+      activity = binding.getActivity();
+
+      binding.addRequestPermissionsResultListener(this);
+    } catch (Exception ex) {
+      //
+    }
   }
 
   @Override
@@ -108,12 +123,17 @@ public class AltSmsAutofillPlugin implements FlutterPlugin, MethodCallHandler, A
 
   @Override
   public boolean onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
-    if (requestCode == 1 && grantResults.length > 0
-            && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-      broadcastReceiver = new MySMSBroadcastReceive(new WeakReference<>(AltSmsAutofillPlugin.this));
-      broadcastReceiver.bindListener(smsListener);
-      activity.registerReceiver(broadcastReceiver,new IntentFilter(Telephony.Sms.Intents.SMS_RECEIVED_ACTION));      return true;
-    } else {
+    try {
+      if (requestCode == 1 && grantResults.length > 0
+              && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+        broadcastReceiver = new MySMSBroadcastReceive(new WeakReference<>(AltSmsAutofillPlugin.this));
+        broadcastReceiver.bindListener(smsListener);
+        activity.registerReceiver(broadcastReceiver, new IntentFilter(Telephony.Sms.Intents.SMS_RECEIVED_ACTION));
+        return true;
+      } else {
+        return false;
+      }
+    } catch (Exception ex) {
       return false;
     }
   }
@@ -129,20 +149,24 @@ public class AltSmsAutofillPlugin implements FlutterPlugin, MethodCallHandler, A
 
     @Override
     public void onReceive(Context context, Intent intent) {
-      if(Telephony.Sms.Intents.SMS_RECEIVED_ACTION.equals(intent.getAction())){
-        if (plugin.get() == null) {
-          return;
-        } else {
-          plugin.get().activity.unregisterReceiver(this);
-        }
-        SmsMessage[] messages = Telephony.Sms.Intents.getMessagesFromIntent(intent);
-        String concatMsg="";
-        for (SmsMessage sms : messages){
-          String message = sms.getMessageBody();
-          concatMsg = concatMsg + message;
-        }
-        mListener.messageReceived(concatMsg);
+      try {
+        if (Telephony.Sms.Intents.SMS_RECEIVED_ACTION.equals(intent.getAction())) {
+          if (plugin.get() == null) {
+            return;
+          } else {
+            plugin.get().activity.unregisterReceiver(this);
+          }
+          SmsMessage[] messages = Telephony.Sms.Intents.getMessagesFromIntent(intent);
+          String concatMsg = "";
+          for (SmsMessage sms : messages) {
+            String message = sms.getMessageBody();
+            concatMsg = concatMsg + message;
+          }
+          mListener.messageReceived(concatMsg);
 
+        }
+      } catch (Exception ex) {
+        //
       }
 
 
